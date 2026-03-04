@@ -36,14 +36,11 @@ jobs:
         echo "=== Dist Directory ==="
         ls -la dist/
         echo ""
-        echo "=== Android Directory ==="
-        ls -la android/ 2>/dev/null || echo "android directory not found"
+        echo "=== Capacitor Config ==="
+        cat capacitor.config.js
 
     - name: Sync Capacitor
-      run: |
-        echo "Running cap sync..."
-        npx cap sync android
-        echo "Sync completed with exit code: $?"
+      run: npx cap sync android
 
     - name: Check files after sync
       run: |
