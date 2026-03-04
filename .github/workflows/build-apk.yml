@@ -19,15 +19,13 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
+        cache: 'npm'
 
     - name: Install dependencies
-      run: npm install
+      run: npm ci
 
     - name: Build web assets
       run: npm run build
-
-    - name: Install Capacitor CLI
-      run: npm install -g @capacitor/cli
 
     - name: Sync Capacitor
       run: npx cap sync android
@@ -41,13 +39,26 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
     - name: Grant execute permission for gradlew
       run: chmod +x android/gradlew
 
     - name: Build Debug APK
       run: |
         cd android
-        ./gradlew assembleDebug --stacktrace
+        ./gradlew assembleDebug --stacktrace --no-daemon
+      env:
+        JAVA_OPTS: -Xmx4096m
+        GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4096m" -Dorg.gradle.daemon=false
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
@@ -58,7 +69,7 @@ jobs:
 
     - name: Create Release
       if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: android/app/build/outputs/apk/debug/app-debug.apk
         tag_name: v${{ github.run_number }}
